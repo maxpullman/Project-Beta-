@@ -21,11 +21,12 @@ public:
 	int ymax;
 	int goalx;  //determined goal based on the grid size
 	int goaly;
+	vector<double> Reward; //Sets the reward table for the grid 
 
 	vector <int> rows;  //making a vector for x coor
 	vector <int> columns;  //making a vecotr for y coor
 
-	void init() {
+	void init(int x) {
 		//initializing the agent class
 		xmin = 0;
 		ymin = 0;
@@ -33,6 +34,9 @@ public:
 		ymax = 0;
 		goalx = 0;
 		goaly = 0;
+		for (int i = 0; i < x; i++) {
+
+		}
 	};
 
 	void set_xmax(int x) {
@@ -101,42 +105,6 @@ public:
 		cout << "Agent has been placed at: (" << positionx << "," << positiony << ")" << endl;
 	};
 
-	//Manual control for the agent to get to the predetermined goal
-	void manual_mode(char input, grid Manual) {
-		//updating position for the manual controls 
-		//makes sure that no moves can go past the grid boundaries 
-		//Classic computer game controls for directions
-		if (input == 'w' || input == 'W') {
-			positiony++;
-			if (positiony > Manual.ymax - 1) {
-				positiony = Manual.ymax - 1;
-			}
-		}
-		else if (input == 's' || input == 'S') {
-			positiony--;
-			if (positiony < 0) {
-				positiony = 0;
-			}
-		}
-		else if (input == 'a' || input == 'A') {
-			positionx--;
-			if (positionx < 0) {
-				positionx = 0;
-			}
-		}
-		else if (input == 'd' || input == 'D') {
-			positionx++;
-			if (positionx > Manual.xmax - 1) {
-				positionx = Manual.xmax - 1;
-			}
-		}
-		//Makes user input a correct character for movement
-		else {
-			cout << "Please input a correct direction (w for up, d for right, s for down, a for left)";
-		}
-
-	};
-
 	void find_goal(agent Smith, int xp, int yp, grid fboard) {
 
 		//Calculates the distance between the goal's x and y position and the agents coordinates
@@ -198,7 +166,7 @@ int main() {
 	//Makes the main grid
 	grid board;
 	//Sets up the grid boundaries
-	board.init();
+	board.init(x);
 	board.set_xmax(x);
 	board.set_ymax(y);
 	board.create_grid();
@@ -210,65 +178,12 @@ int main() {
 	agent Main;
 	Main.init();
 
-	cout << "For Test A, please choose integer values outside of the inputted grid range." << endl;
-
-	TestA(board, x, y);
-	cout << "Test A has successfully passed." << endl;
-
-	cout << "Goal's position is set at coordinates: (" << board.goalx << "," << board.goaly << ")" << endl;
-
-	cout << "Now place the agent on the board for real this time." << endl;
-
-	//Human controlled
-	Controller(board, x, y);
-
-	cout << "You thought you were done placing agents?" << endl;
-	cout << "Not really, but I swear this is the last time." << endl;
-	cout << "Place the autonomous agent on the board." << endl;
-
 	//Placement for the autonomous agent
 	Main.place(x, y);
-	//Agent will move based on the movement goals 
-	Main.find_goal(Main, x, y, board);
-
-	//TestC
-	TestC(Main, board);
-	cout << "Test C has passed. Agent has reached the goal." << endl;
 
 	system("pause");  //Contains a system stop which can be used to keep the program running
 	return 0;
 }
-
-
-//Functions 
-//Human Controller Function
-void Controller(grid Human, int xlimit, int ylimit) {
-	char input;
-
-	//create agent for the main controller
-	agent New;
-	New.init();
-
-	//Place controller agent
-	New.place(xlimit, ylimit);
-
-	while (New.positionx != Human.goalx || New.positiony != Human.goaly) {
-		//Need some input from user
-		cout << "Choose a move for the agent (w for up, d for right, s for down, a for left): " << endl;
-		cin >> input;
-
-		//Takes the individual move indicated
-		New.manual_mode(input, Human);
-
-		cout << "Agent's position: (" << New.positionx << "," << New.positiony << ")" << endl;
-	}
-
-	//Tests the controller location against the goal
-	TestB(New, Human);
-	cout << "Test B has passed. You have reached the goal!" << endl;
-
-}
-
 
 
 //Test A: When an agent is placed off the gridworld, it will be bumped back onto the gridworld
