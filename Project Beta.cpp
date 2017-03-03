@@ -10,6 +10,8 @@
 
 using namespace std;
 
+#define MHRand (double)rand()/RAND_MAX
+
 
 //Creating a grid class that standardizes a board space 
 class grid {
@@ -21,34 +23,33 @@ public:
 	int ymax;
 	int goalx;  //determined goal based on the grid size
 	int goaly;
+	
+	
+	vector<int> States;  //Number of state representations
 	vector<double> Reward; //Sets the reward table for the grid 
-
 	vector <int> rows;  //making a vector for x coor
 	vector <int> columns;  //making a vecotr for y coor
 
-	void init(int x) {
-		//initializing the agent class
+	void init() {
+		//initializing the grid class
 		xmin = 0;
 		ymin = 0;
 		xmax = 0;
 		ymax = 0;
 		goalx = 0;
 		goaly = 0;
-		for (int i = 0; i < x; i++) {
-
-		}
 	};
 
 	void set_xmax(int x) {
 		//setting the grid size and goal location for x
 		xmax = x;
-		goalx = xmax - 2;
+		goalx = rand() % x;
 	};
 
 	void set_ymax(int y) {
 		//setting the grid size and goal location for y
 		ymax = y;
-		goaly = ymax - 2;
+		goaly = rand() % y;
 	};
 
 	void create_grid() {
@@ -59,6 +60,14 @@ public:
 		for (int j = ymin; j < ymax; j++) {
 			columns.push_back(j);
 		}
+		for (int k = 0; k < xmax; k++) {
+			for (int l = 0; l < ymax; l++) {
+				States.push_back(rows.at(l) + columns.at(k)*xmax);
+			}
+		}
+
+
+
 	}
 
 };
@@ -166,20 +175,25 @@ int main() {
 	//Makes the main grid
 	grid board;
 	//Sets up the grid boundaries
-	board.init(x);
+	board.init();
 	board.set_xmax(x);
 	board.set_ymax(y);
 	board.create_grid();
-
+	for (int i = 0; i < x*y - 1; i++) {
+		cout << board.States.at(i) << endl;
+	}
+	
 	//Identifies the grid coordinates for the user
-	cout << "Grid is set between 0 and " << board.xmax - 1 << " in the x-direction and between 0 and ";
-	cout << board.ymax - 1 << " in the y-direction." << endl;
+	//cout << "Grid is set between 0 and " << board.xmax - 1 << " in the x-direction and between 0 and ";
+	//cout << board.ymax - 1 << " in the y-direction." << endl;
+
+
 	//Creates the autonmous agent
 	agent Main;
 	Main.init();
 
 	//Placement for the autonomous agent
-	Main.place(x, y);
+	//Main.place(x, y);
 
 	system("pause");  //Contains a system stop which can be used to keep the program running
 	return 0;
