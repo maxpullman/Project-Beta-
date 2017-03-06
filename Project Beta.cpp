@@ -74,7 +74,7 @@ public:
 			}
 		}
 		for (int i = 0; i < States.size(); i++) {
-			Reward.push_back(-1);
+			Reward.push_back(-10);
 		}
 		Reward.at(GoalState) = 100;
 	}
@@ -109,7 +109,7 @@ public:
 		moves = 0;
 		for (int i = 0; i < Init.States.size(); i++) {
 			for (int j = 0; j < 4; j++) {
-				double random = 2+SmallRand;
+				double random = SmallRand;
 				actions.push_back(random);
 			}
 			StartQTable.push_back(actions);
@@ -280,23 +280,15 @@ int main() {
 
 	cout << Main.Startx << " " << Main.Starty << endl;
 
-	for (int i = 0; i < 5; i++) {
-		for (int j = 0; j < 10; j++) {
+	for (int i = 0; i < 1; i++) {
+		for (int j = 0; j < 2; j++) {
 			Runlearner(Main, board, x, i, j, stat);
-			cout << "Goal was at: " << board.goalx << ", " << board.goaly << endl;
-			cout << "Agent ended at: " << Main.positionx << ", " << Main.positiony << endl;
-			cout << "Number of moves: " << Main.moves << endl;
 		}
 	}
 
 	stat.close();
 
 	cout << Main.Startx << " " << Main.Starty << endl;
-
-
-	cout << "Goal was at: " << board.goalx << ", " << board.goaly << endl;
-	cout << "Agent ended at: " << Main.positionx << ", " << Main.positiony << endl;
-	cout << "Number of moves: " << Main.moves << endl;
 
 
 
@@ -308,17 +300,20 @@ int main() {
 //Tests and function parameters for the rest of the program 
 
 void Runlearner(agent Smith, grid Matrix, int max_x, int Runs, int Episodes, ofstream &statout) {
-
 	while (Smith.State != Matrix.GoalState) {
 		Smith.agent_moves(max_x, Matrix);
 	}
+
+	cout << "Goal: " << Matrix.goalx << ", " << Matrix.goaly << endl;
+	cout << "Agent: " << Smith.positionx << ", " << Smith.positiony << endl;
+	cout << "Moves: " << Smith.moves << endl;
+	cout << Matrix.Reward.at(Matrix.GoalState) << '\t' << Smith.QTable[Smith.State - 1][1] << '\t' << Smith.QTable[Smith.State - 5][0] << '\t' << Smith.QTable[Smith.State + 1][3] << '\t' << Smith.QTable[Smith.State + 5][2] << endl;
 
 	statout << Runs << '\t' << Episodes << '\t' << Smith.moves << endl; 
 
 	//Sets the agent back to its starting position
 	Smith.positionx = Smith.Startx;
 	Smith.positiony = Smith.Starty;
-	Smith.State = Smith.StartingState;
 	//Sets the moves counter back to zero
 	Smith.moves = 0;
 }
