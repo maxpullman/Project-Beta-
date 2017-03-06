@@ -192,7 +192,7 @@ public:
 			//Take the best action in the direction dictated by the Q-table
 			int BestQ = *max_element(QTable[State].begin(), QTable[State].end());
 			for (int i = 0; i <= 3; i++) {
-				if (QTable[State][i] = BestQ) {
+				if (QTable[State][i] == BestQ) {
 					Move = i;
 				}
 			}
@@ -235,11 +235,30 @@ public:
 		State = NewestState;
 	}
 
+	void Runlearner(grid Matrix, int max_x, int Runs, int Episodes, ofstream &statout) {
+		while (State != Matrix.GoalState) {
+			agent_moves(max_x, Matrix);
+		}
+
+		cout << "Goal: " << Matrix.goalx << ", " << Matrix.goaly << endl;
+		cout << "Agent: " << positionx << ", " << positiony << endl;
+		cout << "Moves: " << moves << endl;
+		//cout << Matrix.Reward.at(Matrix.GoalState) << '\t' << QTable[State - 1][1] << '\t' << QTable[State - 5][0] << '\t' << QTable[State + 1][3] << '\t' << QTable[State + 5][2] << endl;
+
+		statout << Runs << '\t' << Episodes << '\t' << moves << endl;
+
+		//Sets the agent back to its starting position
+		positionx = Startx;
+		positiony = Starty;
+		State = StartingState;
+		//Sets the moves counter back to zero
+		moves = 0;
+	}
 };
 
 
 //Declared Tests and functions
-void Runlearner(agent Smith, grid Matrix, int max_x, int Runs, int Episodes, ofstream &statout);
+
 
 int main() {
 	//Declaring the important variables to be used within the main program
@@ -278,17 +297,17 @@ int main() {
 
 	//Running the Q-learner 30 statistical times over a certain amount of episodes 
 
-	cout << Main.Startx << " " << Main.Starty << endl;
+	
 
 	for (int i = 0; i < 1; i++) {
-		for (int j = 0; j < 2; j++) {
-			Runlearner(Main, board, x, i, j, stat);
+		for (int j = 0; j < 20; j++) {
+			Main.Runlearner(board, x, i, j, stat);
 		}
 	}
 
 	stat.close();
 
-	cout << Main.Startx << " " << Main.Starty << endl;
+	
 
 
 
@@ -299,22 +318,5 @@ int main() {
 
 //Tests and function parameters for the rest of the program 
 
-void Runlearner(agent Smith, grid Matrix, int max_x, int Runs, int Episodes, ofstream &statout) {
-	while (Smith.State != Matrix.GoalState) {
-		Smith.agent_moves(max_x, Matrix);
-	}
 
-	cout << "Goal: " << Matrix.goalx << ", " << Matrix.goaly << endl;
-	cout << "Agent: " << Smith.positionx << ", " << Smith.positiony << endl;
-	cout << "Moves: " << Smith.moves << endl;
-	cout << Matrix.Reward.at(Matrix.GoalState) << '\t' << Smith.QTable[Smith.State - 1][1] << '\t' << Smith.QTable[Smith.State - 5][0] << '\t' << Smith.QTable[Smith.State + 1][3] << '\t' << Smith.QTable[Smith.State + 5][2] << endl;
-
-	statout << Runs << '\t' << Episodes << '\t' << Smith.moves << endl; 
-
-	//Sets the agent back to its starting position
-	Smith.positionx = Smith.Startx;
-	Smith.positiony = Smith.Starty;
-	//Sets the moves counter back to zero
-	Smith.moves = 0;
-}
 
