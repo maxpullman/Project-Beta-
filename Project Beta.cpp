@@ -9,10 +9,13 @@
 #include <conio.h>
 #include <time.h>
 #include <algorithm>
+#include <fstream>
 
 using namespace std;
 
-#define MHRand (double)rand()/RAND_MAX*.01
+#define SmallRand (double)rand()/RAND_MAX*.01
+#define Direction (double)rand()/RAND_MAX*3
+#define RAND (double)rand()/RAND_MAX
 
 
 //Creating a grid class that standardizes a board space 
@@ -81,34 +84,39 @@ public:
 //Creating the agent class that decides how to move within the grid based on a goal
 class agent {
 public:
+	int Startx;
+	int Starty;
 	int positionx;  //Setting the agent's x and y position
 	int positiony;
 	int xin;  //Agent's positions based on user input
 	int yin;
-	int Directions = 4;
-	int Stateposition;
+	int StartingState;
+	int State;
 	int moves;
 	double epsilon = .1; //Greedy variable
 	double alpha = .1; //Learning varaible
 	double gamma = .9;  //Q-Learning variable
 
 	vector<double> actions;
-	vector<vector<double>> Q;
+	vector<vector<double>> StartQTable;
+	vector<vector<double>> QTable;
 
 	void init(grid Init) {
 		//initializing the agent's position
 		positionx = -10;
 		positiony = -10;
-		Stateposition = -1;
+		State = -1;
 		moves = 0;
 		for (int i = 0; i < Init.States.size(); i++) {
-			for (int j = 0; j < Directions; j++) {
-				double random = 0 + MHRand;
+			for (int j = 0; j < 4; j++) {
+				double random = 2+SmallRand;
 				actions.push_back(random);
 			}
-			Q.push_back(actions);
+			StartQTable.push_back(actions);
 			actions.clear();
 		}
+
+		QTable = StartQTable;
 	};
 
 	void place(int x, int y) {
@@ -138,54 +146,100 @@ public:
 		}
 		cout << "Agent has been placed at: (" << positionx << "," << positiony << ")" << endl;
 
+		Startx = positionx;
+		Starty = positiony;
+
+		StartingState = positionx + positiony*x;
+		State = StartingState;
 	};
 
-	void bumpercheck(grid Check, int agentxpos, int agentypos) {
+	void bumpercheck(grid Check, int agentxpos, int agentypos, int Movetaken) {
 		if (agentxpos < 0) {
+			QTable[State][Movetaken] = -100;
 			positionx = 0;
 		}
-		else if (agentxpos > Check.xmax){
-			positionx = Check.xmax;
+		else if (agentxpos > Check.xmax-1){
+			QTable[State][Movetaken] = -100;
+			positionx = Check.xmax-1;
 		}
 		else {
 			positionx = agentxpos;
 		}
 		if (agentypos < 0) {
+			QTable[State][Movetaken] = -100;
 			positiony = 0;
 		}
-		else if (agentypos > Check.ymax) {
-			positiony = Check.ymax;
+		else if (agentypos > Check.ymax-1) {
+			QTable[State][Movetaken] = -100;
+			positiony = Check.ymax-1;
 		}
 		else {
 			positiony = agentypos;
 		}
 	};
 
+	void agent_moves(int xp, grid fboard) {
+		int Greed = RAND;
+		int Move = 0;  //Initialize a random move up
 
+		State = positionx + positiony*xp;
 
-	void updateQ(double oldaction, vector<double> newreward) {
+		if (Greed < epsilon) {
+			//Random movement in one of the four directions
+			Move = rand() % 4;
+		}
+		else {
+			//Take the best action in the direction dictated by the Q-table
+			int BestQ = *max_element(QTable[State].begin(), QTable[State].end());
+			for (int i = 0; i <= 3; i++) {
+				if (QTable[State][i] = BestQ) {
+					Move = i;
+				}
+			}
+		}
+
+		if (Move == 0) {
+			//Move Up
+			positiony++;
+		}
+		else if(Move == 1) {
+			//Move Right
+			positionx++;
+		}
+		else if(Move == 2) {
+			//Move Down
+			positiony--;
+		}
+		else {
+			//Move Left
+			positionx--;
+		}
+
+		//Adds one to the number of moves
+		moves++;
+
+		//Resets the agent if it hits a wall on the outer lines of the grid
+		bumpercheck(fboard, positionx, positiony,Move);
+
+		//Updates the agent's position in order to update the QTable of its move
+		int NextState = positionx + positiony*xp;
+
+		//Now the QTable is updated with what the agent just did
+		updateQ(Move, fboard.Reward, NextState);
+	};
+
+	void updateQ(double action, vector<double> reward, int NewestState) {
 		//Updates the old position of the agent with new Q data after moving one state 
-
-
-
+		double maxQ = *max_element(QTable[NewestState].begin(), QTable[NewestState].end());
+		QTable[State][action] = QTable[State][action] + alpha*(reward.at(NewestState) + gamma*maxQ - QTable[State][action]);
+		State = NewestState;
 	}
 
-
-	void find_goal(agent Smith, int xp, int yp, grid fboard) {
-
-		
-
-		cout << "Agent's position is now: (" << Smith.positionx << "," << Smith.positiony << ")" << endl;
-	};
 };
 
 
 //Declared Tests and functions
-void TestA(grid A, int xcoor, int ycoor);
-
-void TestB(agent Barry, grid Barrygrid);
-
-void TestC(agent Carl, grid Carlgrid);
+void Runlearner(agent Smith, grid Matrix, int max_x, int Runs, int Episodes, ofstream &statout);
 
 int main() {
 	//Declaring the important variables to be used within the main program
@@ -193,11 +247,17 @@ int main() {
 	int x; //Xmax
 	int y; //Ymax
 
-		   //Asking for x and y dimensions to create the grid 
+	//Asking for x and y dimensions to create the grid 
 	cout << "Indicate the grid size in the x-direction (positive integer only): ";
 	cin >> x;
 	cout << "Indicate the grid size in the y-direction (positive integer only): ";
 	cin >> y;
+	
+	ofstream stat;
+	stat.clear();
+	stat.open("LearningCurve.txt");
+
+	stat << "Run:" << '\t' << "Episode:" << '\t' << "Moves:" << endl;
 
 	//Makes the main grid
 	grid board;
@@ -206,49 +266,60 @@ int main() {
 	board.set_xmax(x);
 	board.set_ymax(y);
 	board.create_grid();
-	for (int i = 0; i < board.States.size(); i++) {
-		cout << board.States.at(i) << '\t' << board.Reward.at(i) << '\t' << endl;
-	}
-
-
-	
-	//Identifies the grid coordinates for the user
-	cout << "Grid is set between 0 and " << board.xmax - 1 << " in the x-direction and between 0 and ";
-	cout << board.ymax - 1 << " in the y-direction." << endl;
 
 
 	//Creates the autonmous agent
 	agent Main;
 	Main.init(board);
+	Main.place(x, y);
+	
+	cout << "Agent's state: " << Main.State << endl;
+	cout << "Goal State: " << board.GoalState << endl;
 
-	//Placement for the autonomous agent
-	//Main.place(x, y);
+	//Running the Q-learner 30 statistical times over a certain amount of episodes 
+
+	cout << Main.Startx << " " << Main.Starty << endl;
+
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 10; j++) {
+			Runlearner(Main, board, x, i, j, stat);
+			cout << "Goal was at: " << board.goalx << ", " << board.goaly << endl;
+			cout << "Agent ended at: " << Main.positionx << ", " << Main.positiony << endl;
+			cout << "Number of moves: " << Main.moves << endl;
+		}
+	}
+
+	stat.close();
+
+	cout << Main.Startx << " " << Main.Starty << endl;
+
+
+	cout << "Goal was at: " << board.goalx << ", " << board.goaly << endl;
+	cout << "Agent ended at: " << Main.positionx << ", " << Main.positiony << endl;
+	cout << "Number of moves: " << Main.moves << endl;
+
+
+
 
 	system("pause");  //Contains a system stop which can be used to keep the program running
 	return 0;
 }
 
+//Tests and function parameters for the rest of the program 
 
-//Test A: When an agent is placed off the gridworld, it will be bumped back onto the gridworld
-void TestA(grid A, int xcoor, int ycoor) {
-	//Creates a new agent 
-	agent Jerry;
-	Jerry.init(A);
+void Runlearner(agent Smith, grid Matrix, int max_x, int Runs, int Episodes, ofstream &statout) {
 
-	Jerry.place(xcoor, ycoor);
-	//Ensures that the agent, no matter where it's placed, gets put back on the grid
-	assert(Jerry.positionx >= 0 && Jerry.positionx <= xcoor - 1 && Jerry.positiony >= 0 && Jerry.positiony <= ycoor - 1);
-}
+	while (Smith.State != Matrix.GoalState) {
+		Smith.agent_moves(max_x, Matrix);
+	}
 
-//Test B: The agent can be hand guided to the pre-determined goal 
-//The Manual input has reached the goal
-void TestB(agent Barry, grid Barrygrid) {
-	assert(Barry.positionx == Barrygrid.goalx && Barry.positiony == Barrygrid.goaly);
-}
+	statout << Runs << '\t' << Episodes << '\t' << Smith.moves << endl; 
 
-//Test C: The agent's heuristic rule-of-thumb is capable of moving it to a goal state
-//The agent has reached the goal
-void TestC(agent Carl, grid Carlgrid) {
-	assert(Carl.positionx == Carlgrid.goalx && Carl.positiony == Carlgrid.goaly);
+	//Sets the agent back to its starting position
+	Smith.positionx = Smith.Startx;
+	Smith.positiony = Smith.Starty;
+	Smith.State = Smith.StartingState;
+	//Sets the moves counter back to zero
+	Smith.moves = 0;
 }
 
