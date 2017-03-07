@@ -74,7 +74,7 @@ public:
 			}
 		}
 		for (int i = 0; i < States.size(); i++) {
-			Reward.push_back(-10);
+			Reward.push_back(-1);
 		}
 		Reward.at(GoalState) = 100;
 	}
@@ -93,6 +93,11 @@ public:
 	int StartingState;
 	int State;
 	int moves;
+
+	int Episodecounter;
+	int Totallast10moves;
+	int Averagelast10moves;
+
 	double epsilon = .1; //Greedy variable
 	double alpha = .1; //Learning varaible
 	double gamma = .9;  //Q-Learning variable
@@ -107,6 +112,10 @@ public:
 		positiony = -10;
 		State = -1;
 		moves = 0;
+		Episodecounter = 0;
+		Totallast10moves = 0;
+		Averagelast10moves = 0;
+		//Initializes the Q-Table for the agent
 		for (int i = 0; i < Init.States.size(); i++) {
 			for (int j = 0; j < 4; j++) {
 				double random = SmallRand;
@@ -126,6 +135,7 @@ public:
 		cin >> yin;
 
 		//Making sure the agent is placed within the boundaries of the user inputted grid
+		//Same code was used in HW 2 to ensure the agent isnt placed off the grid 
 		if (xin < 0) {
 			positionx = 0;
 		}
@@ -154,6 +164,8 @@ public:
 	};
 
 	void bumpercheck(grid Check, int agentxpos, int agentypos, int Movetaken) {
+		//Checks to see whether the agent's x and y coordinate position is not off the grid and if so
+		//puts the agent back on the grid and gives the Q-Table a negative value of -100 for that state and direction movement
 		if (agentxpos < 0) {
 			QTable[State][Movetaken] = -100;
 			positionx = 0;
@@ -179,8 +191,9 @@ public:
 	};
 
 	void agent_moves(int xp, grid fboard) {
-		int Greed = RAND;
+		double Greed = RAND;
 		int Move = 0;  //Initialize a random move up
+		
 
 		State = positionx + positiony*xp;
 
@@ -190,12 +203,14 @@ public:
 		}
 		else {
 			//Take the best action in the direction dictated by the Q-table
-			int BestQ = *max_element(QTable[State].begin(), QTable[State].end());
+			double BestQ =  *max_element(QTable[State].begin(), QTable[State].end());
 			for (int i = 0; i <= 3; i++) {
+				//cout << QTable[State][i] << endl;
 				if (QTable[State][i] == BestQ) {
 					Move = i;
 				}
 			}
+			
 		}
 
 		if (Move == 0) {
@@ -235,14 +250,16 @@ public:
 		State = NewestState;
 	}
 
-	void Runlearner(grid Matrix, int max_x, int Runs, int Episodes, ofstream &statout) {
+	void Runlearner(grid Matrix, int max_x, int Runs, int Episodes, ofstream &statout, int TotalEpisodes) {
+
+
 		while (State != Matrix.GoalState) {
 			agent_moves(max_x, Matrix);
 		}
 
-		cout << "Goal: " << Matrix.goalx << ", " << Matrix.goaly << endl;
+		/*cout << "Goal: " << Matrix.goalx << ", " << Matrix.goaly << endl;
 		cout << "Agent: " << positionx << ", " << positiony << endl;
-		cout << "Moves: " << moves << endl;
+		cout << "Moves: " << moves << endl;*/
 		//cout << Matrix.Reward.at(Matrix.GoalState) << '\t' << QTable[State - 1][1] << '\t' << QTable[State - 5][0] << '\t' << QTable[State + 1][3] << '\t' << QTable[State + 5][2] << endl;
 
 		statout << Runs << '\t' << Episodes << '\t' << moves << endl;
@@ -251,20 +268,36 @@ public:
 		positionx = Startx;
 		positiony = Starty;
 		State = StartingState;
+		//Sets an Episode counter to determine the total moves of the agent on the last 10 steps
+		Episodecounter++;
+		//For the last 10 episodes calculates the toal moves and calculates the average
+		if (Episodecounter > TotalEpisodes-10) {
+			Totallast10moves = moves + Totallast10moves;
+		}
+		Averagelast10moves = Totallast10moves / 10;
 		//Sets the moves counter back to zero
 		moves = 0;
 	}
+
+	
 };
 
 
 //Declared Tests and functions
+void TestD(agent Da, grid Dg);
 
+void TestE(agent Ea);
+
+void TestF(agent Fa, grid Fg);
+
+void TestG();
 
 int main() {
 	//Declaring the important variables to be used within the main program
 	srand(time(NULL));
 	int x; //Xmax
 	int y; //Ymax
+	int Episodes = 250;
 
 	//Asking for x and y dimensions to create the grid 
 	cout << "Indicate the grid size in the x-direction (positive integer only): ";
@@ -272,10 +305,11 @@ int main() {
 	cout << "Indicate the grid size in the y-direction (positive integer only): ";
 	cin >> y;
 	
+	//Opens a text file
 	ofstream stat;
 	stat.clear();
 	stat.open("LearningCurve.txt");
-
+	//Sets the header for the learning curve text file
 	stat << "Run:" << '\t' << "Episode:" << '\t' << "Moves:" << endl;
 
 	//Makes the main grid
@@ -286,7 +320,6 @@ int main() {
 	board.set_ymax(y);
 	board.create_grid();
 
-
 	//Creates the autonmous agent
 	agent Main;
 	Main.init(board);
@@ -296,19 +329,27 @@ int main() {
 	cout << "Goal State: " << board.GoalState << endl;
 
 	//Running the Q-learner 30 statistical times over a certain amount of episodes 
+	for (int i = 0; i < 30; i++) {
+		for (int j = 0; j < Episodes; j++) {
 
-	
-
-	for (int i = 0; i < 1; i++) {
-		for (int j = 0; j < 20; j++) {
-			Main.Runlearner(board, x, i, j, stat);
+			Main.Runlearner(board, x, i, j, stat,Episodes);
+			//Checks to see if agent's position was reset and the Q-table was not 
+			TestE(Main);
+			if (j == Episodes - 1) {
+				TestF(Main, board);
+			}
 		}
+		//resets the parameters for Test E 
+		Main.Episodecounter = 0;
+		Main.Totallast10moves = 0;
+		Main.Averagelast10moves = 0;
+		Main.QTable = Main.StartQTable;
+		//Test for each statistical run that the Q-table doesnt exceed the max reward of 100 at any point
+		TestD(Main, board);
 	}
 
+	//Closes the learning curve text file
 	stat.close();
-
-	
-
 
 
 
@@ -317,6 +358,37 @@ int main() {
 }
 
 //Tests and function parameters for the rest of the program 
+//Test D: No Q-value in the Q-table ever exceeds the given reward of 100 by reaching the goal state
+void TestD(agent Da, grid Dg) {
+	int Directions = 4;
+
+	//Runs through entire Q-table and checks the convergent reward
+	for (int i = 0; i < size(Dg.States); i++) {
+		for (int j = 0; j < Directions; j++) {
+			assert(Da.QTable[i][j] <= 100);
+		}
+	}
+}
+
+//Test E: When the agent reaches the goal state, it is reset to the initial state and is identical to a freshly initialized agent, except for the Q-values
+void TestE(agent Ea) {
+	assert(Ea.State == Ea.StartingState);
+	assert(Ea.QTable != Ea.StartQTable);
+}
+
+//Test F: The agent is capable of using Q-learning to get to the goal in a near-optimal number of steps
+void TestF(agent Fa, grid Fg) {
+	int movex = abs(Fg.goalx - Fa.Startx);
+	int movey = abs(Fg.goaly - Fa.Starty);
+	int total_moves = movex + movey;
+	
+	assert(total_moves <= Fa.Averagelast10moves && Fa.Averagelast10moves <= total_moves *2);
+}
+
+//Test G: The agent can use a different state representation than in TestD and get to the goal state 
+void TestG()
+{
 
 
 
+}
